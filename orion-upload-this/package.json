@@ -1,0 +1,26 @@
+{
+  "name": "orion-browser",
+  "version": "2.0.0",
+  "description": "Orion Browser — Chromium-based desktop browser with AI",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "build-win": "electron-builder --win --x64"
+  },
+  "build": {
+    "appId": "com.orionbrowser.app",
+    "productName": "Orion Browser",
+    "files": ["src/**/*"],
+    "win": {
+      "target": [{ "target": "nsis", "arch": ["x64"] }]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  },
+  "devDependencies": {
+    "electron": "29.4.6",
+    "electron-builder": "24.13.3"
+  }
+}

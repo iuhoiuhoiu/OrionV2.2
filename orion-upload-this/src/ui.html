@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Orion</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+:root {
+  --bg0:#0f0f11; --bg1:#141416; --bg2:#1b1b1f; --bg3:#242428; --bg4:#2e2e34; --bg5:#393940;
+  --b0:rgba(255,255,255,.04); --b1:rgba(255,255,255,.08); --b2:rgba(255,255,255,.14); --b3:rgba(255,255,255,.24);
+  --t0:#f0f0f3; --t1:#8e8ea8; --t2:#4a4a60;
+  --acc:#5b8ef8; --acc2:#3563d4; --accd:rgba(91,142,248,.13); --accb:rgba(91,142,248,.26);
+  --grn:#38d98a; --grnd:rgba(56,217,138,.1); --grnb:rgba(56,217,138,.22);
+  --red:#f87171; --redd:rgba(248,113,113,.11);
+  --amb:#fbbf24;
+  --r:5px; --r2:9px; --r3:13px;
+  --ui:'Outfit',system-ui,sans-serif; --mono:'JetBrains Mono',monospace;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;overflow:hidden;background:var(--bg0);color:var(--t0);font-family:var(--ui);font-size:13px;user-select:none;-webkit-font-smoothing:antialiased;}
+button,input,textarea,select{font-family:var(--ui);}
+button{cursor:pointer;border:none;background:none;color:inherit;line-height:1;}
+
+/* ── SHELL ── */
+#shell{display:flex;flex-direction:column;height:100vh;}
+#chrome{flex-shrink:0;background:var(--bg1);}
+
+/* ── TAB STRIP ── */
+#tab-strip{
+  height:34px;display:flex;align-items:flex-end;padding:4px 6px 0;gap:2px;
+  overflow-x:auto;overflow-y:hidden;scrollbar-width:none;border-bottom:1px solid var(--b0);
+}
+#tab-strip::-webkit-scrollbar{display:none;}
+.tab{
+  display:flex;align-items:center;gap:5px;min-width:88px;max-width:196px;height:27px;
+  padding:0 7px 0 9px;border-radius:7px 7px 0 0;
+  background:var(--bg3);border:1px solid var(--b0);border-bottom:none;
+  font-size:11.5px;color:var(--t1);cursor:pointer;flex-shrink:0;
+  transition:background .1s,color .1s;white-space:nowrap;overflow:hidden;
+}
+.tab:hover{background:var(--bg4);color:var(--t0);}
+.tab.active{background:var(--bg2);color:var(--t0);border-color:var(--b1);}
+.tab-fav{width:13px;height:13px;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
+.tab-fav img{width:13px;height:13px;border-radius:2px;display:block;}
+.tab-spin{width:11px;height:11px;border:1.5px solid var(--b2);border-top-color:var(--acc);border-radius:50%;animation:spin .5s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.tab-title{flex:1;overflow:hidden;text-overflow:ellipsis;}
+.tab-x{width:15px;height:15px;border-radius:50%;color:var(--t2);font-size:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .1s,color .1s;}
+.tab-x:hover{background:var(--bg5);color:var(--t0);}
+#add-tab{width:24px;height:24px;border-radius:var(--r);color:var(--t2);font-size:18px;display:flex;align-items:center;justify-content:center;flex-shrink:0;align-self:center;margin-left:2px;transition:color .1s;}
+#add-tab:hover{color:var(--t0);}
+
+/* ── NAV BAR ── */
+#nav-bar{
+  height:40px;display:flex;align-items:center;gap:3px;padding:4px 8px;
+  background:var(--bg2);border-bottom:1px solid var(--b0);
+}
+.nb{width:28px;height:28px;border-radius:var(--r);color:var(--t1);font-size:15px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .1s,color .1s;}
+.nb:hover:not(:disabled){background:var(--bg3);color:var(--t0);}
+.nb:disabled{opacity:.25;cursor:default;}
+#omni-wrap{flex:1;height:28px;position:relative;margin:0 3px;}
+#omnibox{
+  width:100%;height:100%;background:var(--bg3);border:1px solid var(--b1);
+  border-radius:14px;padding:0 32px 0 28px;font-size:12.5px;color:var(--t0);
+  font-family:var(--mono);outline:none;transition:border-color .15s,background .15s;
+  user-select:text;
+}
+#omnibox:focus{border-color:var(--acc);background:var(--bg4);}
+#omnibox::placeholder{color:var(--t2);font-family:var(--ui);}
+#omni-scheme{
+  position:absolute;left:9px;top:50%;transform:translateY(-50%);
+  font-size:11px;pointer-events:none;color:var(--t2);
+}
+#omni-scheme.ok{color:var(--grn);}
+#omni-scheme.warn{color:var(--amb);}
+#omni-go{
+  position:absolute;right:5px;top:50%;transform:translateY(-50%);
+  width:20px;height:20px;border-radius:50%;background:var(--acc);color:#fff;font-size:10px;
+  display:flex;align-items:center;justify-content:center;
+  opacity:0;pointer-events:none;transition:opacity .15s;
+}
+#omni-wrap:focus-within #omni-go{opacity:1;pointer-events:auto;}
+.ibt{width:28px;height:28px;border-radius:var(--r);color:var(--t1);font-size:15px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .1s;}
+.ibt:hover{background:var(--bg3);color:var(--t0);}
+.ibt.on{color:var(--amb);}
+#zoom-pill{
+  display:flex;align-items:center;gap:1px;background:var(--bg3);border:1px solid var(--b1);
+  border-radius:10px;padding:1px;font-size:10.5px;flex-shrink:0;
+  transition:all .15s;opacity:0;pointer-events:none;
+}
+#zoom-pill.vis{opacity:1;pointer-events:auto;}
+.zpb{width:18px;height:18px;border-radius:7px;color:var(--t1);font-size:13px;display:flex;align-items:center;justify-content:center;transition:background .1s,color .1s;}
+.zpb:hover{background:var(--bg4);color:var(--t0);}
+#zoom-val{font-family:var(--mono);font-size:10px;color:var(--t0);padding:0 4px;min-width:30px;text-align:center;cursor:pointer;}
+#zoom-val:hover{color:var(--acc);}
+#ai-btn{width:28px;height:28px;border-radius:var(--r);color:var(--t1);font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;}
+#ai-btn:hover,#ai-btn.on{background:var(--accd);color:var(--acc);}
+
+/* ── BM BAR ── */
+#bm-bar{height:24px;display:flex;align-items:center;padding:0 6px;gap:1px;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;border-bottom:1px solid var(--b0);background:var(--bg1);transition:height .15s;}
+#bm-bar.off{height:0;padding:0;overflow:hidden;border:none;}
+#bm-bar::-webkit-scrollbar{display:none;}
+.bm{display:flex;align-items:center;gap:4px;padding:1px 7px;border-radius:var(--r);font-size:11px;color:var(--t1);cursor:pointer;white-space:nowrap;height:18px;transition:background .1s,color .1s;}
+.bm:hover{background:var(--bg3);color:var(--t0);}
+.bm img{width:12px;height:12px;border-radius:2px;flex-shrink:0;}
+.bm-empty{font-size:10.5px;color:var(--t2);padding:0 6px;font-family:var(--mono);}
+
+/* ── FIND BAR ── */
+#find-bar{
+  height:0;overflow:hidden;background:var(--bg2);border-bottom:1px solid var(--b0);
+  display:flex;align-items:center;padding:0;gap:4px;transition:height .15s;
+}
+#find-bar.on{height:34px;padding:4px 10px;}
+#find-input{
+  flex:1;height:24px;background:var(--bg3);border:1px solid var(--b1);
+  border-radius:var(--r);padding:0 10px;font-size:12px;color:var(--t0);
+  outline:none;user-select:text;font-family:var(--mono);
+}
+#find-input:focus{border-color:var(--acc);}
+#find-input::placeholder{color:var(--t2);font-family:var(--ui);}
+#find-count{font-size:10.5px;color:var(--t1);font-family:var(--mono);min-width:55px;text-align:center;flex-shrink:0;}
+.fb{width:24px;height:24px;border-radius:var(--r);color:var(--t1);font-size:13px;display:flex;align-items:center;justify-content:center;transition:background .1s,color .1s;}
+.fb:hover{background:var(--bg3);color:var(--t0);}
+
+/* ── CONTENT ── */
+#content{display:flex;flex:1;overflow:hidden;min-height:0;}
+#viewport{flex:1;position:relative;overflow:hidden;}
+
+/* ── NEW TAB ── */
+#newtab{
+  position:absolute;inset:0;background:var(--bg0);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:22px;padding:40px 20px;z-index:10;
+  transition:opacity .12s;
+}
+#newtab.gone{opacity:0;pointer-events:none;}
+.brand{font-size:46px;font-weight:700;color:var(--acc);letter-spacing:-3px;line-height:1;}
+.brand-s{font-size:11px;color:var(--t2);font-family:var(--mono);letter-spacing:2px;margin-top:-6px;}
+#nt-in{
+  width:100%;max-width:520px;height:44px;background:var(--bg2);
+  border:1.5px solid var(--b2);border-radius:22px;padding:0 22px;
+  font-size:15px;color:var(--t0);outline:none;transition:border-color .15s;user-select:text;
+}
+#nt-in:focus{border-color:var(--acc);}
+#nt-in::placeholder{color:var(--t2);}
+.ql-row{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;max-width:540px;}
+.ql{display:flex;flex-direction:column;align-items:center;gap:5px;width:60px;cursor:pointer;}
+.ql-ic{width:44px;height:44px;border-radius:var(--r2);background:var(--bg2);border:1px solid var(--b1);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:var(--t1);transition:all .12s;}
+.ql:hover .ql-ic{background:var(--bg3);border-color:var(--b2);color:var(--t0);}
+.ql-lb{font-size:10px;color:var(--t2);text-align:center;}
+
+/* ── AI PANEL ── */
+#ai-panel{width:0;flex-shrink:0;overflow:hidden;border-left:1px solid var(--b0);background:var(--bg1);display:flex;flex-direction:column;transition:width .2s ease;}
+#ai-panel.on{width:300px;}
+#ai-inner{width:300px;display:flex;flex-direction:column;height:100%;overflow:hidden;}
+#ai-hd{padding:9px 12px;border-bottom:1px solid var(--b0);display:flex;align-items:center;gap:7px;flex-shrink:0;}
+#ai-hd h3{font-size:12.5px;font-weight:600;flex:1;}
+.badge{background:var(--accd);color:var(--acc);font-size:9px;padding:2px 6px;border-radius:8px;border:1px solid var(--accb);font-family:var(--mono);}
+.badge.g{background:var(--grnd);color:var(--grn);border-color:var(--grnb);}
+#ai-x{color:var(--t2);font-size:16px;transition:color .1s;}#ai-x:hover{color:var(--t0);}
+#ai-st{padding:4px 12px;font-size:10px;font-family:var(--mono);color:var(--grn);background:var(--grnd);border-bottom:1px solid var(--grnb);flex-shrink:0;display:flex;align-items:center;gap:5px;}
+.sdot{width:5px;height:5px;border-radius:50%;background:var(--grn);animation:blink 2s infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+#agent-tag{margin-left:auto;background:rgba(251,191,36,.12);color:var(--amb);border:1px solid rgba(251,191,36,.28);font-size:9px;padding:1px 6px;border-radius:6px;display:none;}
+#ai-cfg{padding:5px 9px;border-bottom:1px solid var(--b0);flex-shrink:0;display:flex;flex-direction:column;gap:4px;}
+#model-sel{width:100%;background:var(--bg3);border:1px solid var(--b1);border-radius:var(--r);padding:5px 8px;font-size:11px;color:var(--t0);outline:none;cursor:pointer;}
+#hf-key{width:100%;background:var(--bg3);border:1px solid var(--b1);border-radius:var(--r);padding:5px 8px;font-size:11px;color:var(--t0);font-family:var(--mono);outline:none;user-select:text;}
+#hf-key::placeholder{color:var(--t2);}
+#ai-chips{padding:5px 8px;display:flex;flex-wrap:wrap;gap:3px;border-bottom:1px solid var(--b0);flex-shrink:0;}
+.chip{background:var(--bg3);border:1px solid var(--b0);border-radius:8px;padding:2px 7px;font-size:10px;color:var(--t1);cursor:pointer;transition:all .1s;white-space:nowrap;}
+.chip:hover{background:var(--accd);color:var(--acc);border-color:var(--accb);}
+#ai-log{flex:1;overflow-y:auto;padding:7px 9px;display:flex;flex-direction:column;gap:5px;}
+#ai-log::-webkit-scrollbar{width:3px;}#ai-log::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:2px;}
+.msg{max-width:96%;padding:6px 9px;border-radius:9px;font-size:11.5px;line-height:1.6;word-break:break-word;white-space:pre-wrap;}
+.msg.u{align-self:flex-end;background:var(--accd);color:var(--t0);border:1px solid var(--accb);border-bottom-right-radius:3px;}
+.msg.a{align-self:flex-start;background:var(--bg3);color:var(--t0);border:1px solid var(--b1);border-bottom-left-radius:3px;}
+.msg.err{align-self:flex-start;background:var(--redd);color:var(--red);border:1px solid rgba(248,113,113,.18);font-size:10.5px;border-radius:6px;}
+.msg.step{align-self:stretch;font-size:10px;font-family:var(--mono);border-radius:6px;padding:4px 8px;}
+.msg.step.tk{background:var(--bg3);color:var(--t1);border:1px solid var(--b0);}
+.msg.step.ac{background:var(--grnd);color:var(--grn);border:1px solid var(--grnb);}
+.msg.step.fl{background:var(--redd);color:var(--red);border:1px solid rgba(248,113,113,.18);}
+.dots span{display:inline-block;animation:d .7s infinite;font-size:16px;line-height:.5;}
+.dots span:nth-child(2){animation-delay:.2s;}.dots span:nth-child(3){animation-delay:.4s;}
+@keyframes d{0%,80%,100%{opacity:.1}40%{opacity:1}}
+#ai-ft{padding:6px 9px;border-top:1px solid var(--b0);display:flex;flex-direction:column;gap:4px;flex-shrink:0;}
+#ai-row{display:flex;gap:4px;align-items:flex-end;}
+#ai-in{flex:1;background:var(--bg3);border:1px solid var(--b1);border-radius:var(--r);padding:5px 9px;font-size:11.5px;color:var(--t0);resize:none;outline:none;min-height:28px;max-height:84px;line-height:1.4;transition:border-color .15s;user-select:text;}
+#ai-in:focus{border-color:var(--acc);}#ai-in::placeholder{color:var(--t2);}
+#ai-go{background:var(--acc);color:#fff;border-radius:var(--r);padding:0 11px;font-size:13px;height:28px;flex-shrink:0;font-weight:600;transition:background .15s;}
+#ai-go:hover{background:var(--acc2);}#ai-go:disabled{background:var(--accd);color:var(--acc);cursor:not-allowed;}
+#ai-meta{display:flex;justify-content:space-between;}
+#ai-meta span{font-size:9.5px;color:var(--t2);font-family:var(--mono);}
+#ai-clr{font-size:9.5px;color:var(--t2);transition:color .1s;}#ai-clr:hover{color:var(--t1);}
+
+/* ── STATUS BAR ── */
+#statusbar{height:22px;background:var(--bg1);border-top:1px solid var(--b0);display:flex;align-items:center;padding:0 10px;gap:7px;flex-shrink:0;}
+.sled{width:6px;height:6px;border-radius:50%;background:var(--grn);flex-shrink:0;transition:background .3s;}
+.sled.loading{background:var(--amb);animation:blink .9s infinite;}
+.sled.error{background:var(--red);}
+#st{font-size:10px;color:var(--t2);font-family:var(--mono);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+#ssl{font-size:10px;font-family:var(--mono);margin-left:auto;flex-shrink:0;}
+#ssl.ok{color:var(--grn);}#ssl.warn{color:var(--amb);}
+#dl-bar{display:flex;align-items:center;gap:5px;margin-left:10px;flex-shrink:0;}
+.dl-item{display:flex;align-items:center;gap:4px;background:var(--bg3);border:1px solid var(--b1);border-radius:5px;padding:1px 6px;font-size:10px;font-family:var(--mono);cursor:pointer;transition:background .1s;max-width:180px;}
+.dl-item:hover{background:var(--bg4);}
+.dl-name{color:var(--t0);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100px;}
+.dl-prog{color:var(--acc);}
+.dl-done{color:var(--grn);}
+.dl-fail{color:var(--red);}
+.dl-bar-prog{height:2px;background:var(--bg4);border-radius:1px;flex:1;min-width:30px;overflow:hidden;}
+.dl-bar-fill{height:100%;background:var(--acc);border-radius:1px;transition:width .2s;}
+
+/* ── CTX MENU ── */
+#ctx{position:fixed;z-index:9999;background:var(--bg2);border:1px solid var(--b2);border-radius:var(--r2);padding:4px;min-width:155px;box-shadow:0 8px 28px rgba(0,0,0,.5);display:none;}
+#ctx.on{display:block;}
+.ci{padding:5px 11px;border-radius:var(--r);font-size:11.5px;color:var(--t1);cursor:pointer;white-space:nowrap;transition:background .08s;}
+.ci:hover{background:var(--bg3);color:var(--t0);}
+.ci.danger{color:var(--red);}
+.ci.danger:hover{background:var(--redd);}
+.csep{height:1px;background:var(--b0);margin:3px 0;}
+</style>
+</head>
+<body>
+<div id="shell">
+  <div id="chrome">
+    <div id="tab-strip">
+      <button id="add-tab" title="New tab (Ctrl+T)">+</button>
+    </div>
+    <div id="nav-bar">
+      <button class="nb" id="btn-back"   title="Back (Alt+←)">&#8592;</button>
+      <button class="nb" id="btn-fwd"    title="Forward (Alt+→)">&#8594;</button>
+      <button class="nb" id="btn-reload" title="Reload (F5 / Ctrl+Shift+R=hard)">&#8635;</button>
+      <button class="nb" id="btn-home"   title="New tab">&#8962;</button>
+      <div id="omni-wrap">
+        <span id="omni-scheme"></span>
+        <input id="omnibox" type="text" placeholder="Search or enter address…" spellcheck="false" autocomplete="off"/>
+        <button id="omni-go">&#9654;</button>
+      </div>
+      <button class="ibt" id="star-btn"  title="Bookmark (Ctrl+D)">&#9734;</button>
+      <div id="zoom-pill" title="Zoom controls">
+        <button class="zpb" id="zm-out">−</button>
+        <span id="zoom-val" title="Reset zoom">100%</span>
+        <button class="zpb" id="zm-in">+</button>
+      </div>
+      <button class="ibt" id="find-toggle" title="Find on page (Ctrl+F)">&#128269;</button>
+      <button class="ibt" id="dev-btn"  title="DevTools">&#128296;</button>
+      <button class="ibt" id="build-btn" title="Build installer">&#128230;</button>
+      <button id="ai-btn" title="AI Agent (Ctrl+K)">&#10024;</button>
+    </div>
+    <div id="bm-bar">
+      <span class="bm-empty" id="bm-empty" style="display:none">No bookmarks yet — click ★ to add</span>
+    </div>
+    <div id="find-bar">
+      <input id="find-input" type="text" placeholder="Find on page…" spellcheck="false" autocomplete="off"/>
+      <span id="find-count"></span>
+      <button class="fb" id="find-prev" title="Previous (Shift+Enter)">&#8593;</button>
+      <button class="fb" id="find-next-btn" title="Next (Enter)">&#8595;</button>
+      <button class="fb" id="find-close" title="Close (Esc)">&#10005;</button>
+    </div>
+  </div>
+
+  <div id="content">
+    <div id="viewport">
+      <div id="newtab">
+        <div class="brand">Orion</div>
+        <div class="brand-s">DESKTOP · CHROMIUM · V2</div>
+        <input id="nt-in" type="text" placeholder="Search Google or enter a URL…" autocomplete="off"/>
+        <div class="ql-row">
+          <div class="ql" data-url="https://google.com"><div class="ql-ic">G</div><div class="ql-lb">Google</div></div>
+          <div class="ql" data-url="https://youtube.com"><div class="ql-ic">▶</div><div class="ql-lb">YouTube</div></div>
+          <div class="ql" data-url="https://reddit.com"><div class="ql-ic">R</div><div class="ql-lb">Reddit</div></div>
+          <div class="ql" data-url="https://github.com"><div class="ql-ic">⬡</div><div class="ql-lb">GitHub</div></div>
+          <div class="ql" data-url="https://twitter.com"><div class="ql-ic">X</div><div class="ql-lb">Twitter</div></div>
+          <div class="ql" data-url="https://wikipedia.org"><div class="ql-ic">W</div><div class="ql-lb">Wiki</div></div>
+          <div class="ql" data-url="https://duckduckgo.com"><div class="ql-ic">&#128056;</div><div class="ql-lb">Duck</div></div>
+          <div class="ql" data-url="https://news.ycombinator.com"><div class="ql-ic">Y</div><div class="ql-lb">HN</div></div>
+          <div class="ql" data-url="https://ghaps.owschools.com"><div class="ql-ic">&#127979;</div><div class="ql-lb">School</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="ai-panel">
+      <div id="ai-inner">
+        <div id="ai-hd">
+          <h3>AI <span class="badge">Orion</span> <span class="badge g" id="model-badge">Free</span></h3>
+          <button id="ai-x">&#10005;</button>
+        </div>
+        <div id="ai-st">
+          <div class="sdot"></div>
+          <span id="ai-st-txt">GPT-4o · Pollinations · Free</span>
+          <span id="agent-tag">AGENT</span>
+        </div>
+        <div id="ai-cfg">
+          <select id="model-sel">
+            <option value="pollinations">GPT-4o · Pollinations (free, no key)</option>
+            <option value="mistralai/Mistral-7B-Instruct-v0.3">Mistral 7B · HuggingFace</option>
+            <option value="mistralai/Mixtral-8x7B-Instruct-v0.1">Mixtral 8x7B · HuggingFace</option>
+            <option value="meta-llama/Llama-3.2-3B-Instruct">Llama 3.2 3B · HuggingFace</option>
+            <option value="HuggingFaceH4/zephyr-7b-beta">Zephyr 7B · HuggingFace</option>
+            <option value="Qwen/Qwen2.5-7B-Instruct">Qwen 2.5 7B · HuggingFace</option>
+          </select>
+          <input id="hf-key" type="password" placeholder="HuggingFace API key (HF models only)"/>
+        </div>
+        <div id="ai-chips">
+          <button class="chip" data-q="Summarize this page">Summarize</button>
+          <button class="chip" data-q="Go to google.com and search for">Search</button>
+          <button class="chip" data-q="Scroll down 600 pixels">Scroll ↓</button>
+          <button class="chip" data-q="Click the search button">Click</button>
+          <button class="chip" data-q="Extract main content">Extract</button>
+          <button class="chip" data-q="Explain what I'm looking at">Explain</button>
+          <button class="chip" data-q="Help me with this math:">Math</button>
+        </div>
+        <div id="ai-log">
+          <div class="msg a">Hi! I'm Orion AI. I can browse the web autonomously — navigate, click, fill forms, scroll, and extract info.
+
+Try: "Go to google.com and search for cats"
+Or: "Summarize this page"
+Or: "Find and click the login button"
+
+Free via Pollinations (GPT-4o). Add HF key for HuggingFace models.</div>
+        </div>
+        <div id="ai-ft">
+          <div id="ai-row">
+            <textarea id="ai-in" rows="1" placeholder="Ask anything or give a command…"></textarea>
+            <button id="ai-go">▶</button>
+          </div>
+          <div id="ai-meta">
+            <span id="ai-info">0 msgs</span>
+            <button id="ai-clr">clear</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="statusbar">
+    <div class="sled" id="sled"></div>
+    <span id="st">Ready</span>
+    <span id="ssl"></span>
+    <div id="dl-bar"></div>
+  </div>
+</div>
+
+<!-- Context menu (for right-click on tabs AND page context) -->
+<div id="ctx">
+  <div class="ci" id="ci-nt">Open in new tab</div>
+  <div class="ci" id="ci-dup">Duplicate tab</div>
+  <div class="ci" id="ci-copy">Copy URL</div>
+  <div class="csep"></div>
+  <div class="ci" id="ci-bm">Bookmark this tab</div>
+  <div class="csep"></div>
+  <div class="ci" id="ci-reload">Reload</div>
+  <div class="ci danger" id="ci-close">Close tab</div>
+</div>
+
+<script>
+'use strict';
+const api = window.orion;
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let tabList = [], activeId = null, ctxTabId = null;
+let showBmBar = true, bmList = [], aiOpen = false;
+let findOpen = false, findQuery = '';
+let aiConv = [], currentModel = 'pollinations', hfKey = '', hfWarn = false;
+let agentRunning = false;
+let downloads = new Map();
+let currentZoom = 1.0;
+
+try { bmList    = JSON.parse(localStorage.getItem('orion_bm') || '[]'); }   catch {}
+try { showBmBar = localStorage.getItem('orion_bm_bar') !== 'false'; }       catch {}
+try { currentModel = localStorage.getItem('orion_model') || 'pollinations';} catch {}
+try { hfKey    = localStorage.getItem('orion_hf_key') || ''; }             catch {}
+
+// ── Elements ──────────────────────────────────────────────────────────────────
+const tabStrip = document.getElementById('tab-strip');
+const omnibox  = document.getElementById('omnibox');
+const newtab   = document.getElementById('newtab');
+const aiLog    = document.getElementById('ai-log');
+const aiIn     = document.getElementById('ai-in');
+const aiGoBtn  = document.getElementById('ai-go');
+const bmBar    = document.getElementById('bm-bar');
+const ctx      = document.getElementById('ctx');
+const findBar  = document.getElementById('find-bar');
+const findIn   = document.getElementById('find-input');
+
+// ── Chrome height reporter ────────────────────────────────────────────────────
+const chromeEl = document.getElementById('chrome');
+function reportH() { api.reportHeight(Math.round(chromeEl.getBoundingClientRect().height)); }
+new ResizeObserver(reportH).observe(chromeEl);
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function hn(u){ try{return new URL(u).hostname.replace(/^www\./,'')}catch{return u?.slice(0,30)||''} }
+function showNT(){ newtab.classList.remove('gone'); omnibox.value=''; setSsl(''); setStatus('','New tab'); }
+function hideNT(){ newtab.classList.add('gone'); }
+function setSsl(url){
+  const el=document.getElementById('ssl'), sc=document.getElementById('omni-scheme');
+  if(!url||url==='about:blank'){el.textContent='';el.className='';sc.textContent='';sc.className='';return;}
+  if(/^https:/i.test(url)){el.innerHTML='&#128274; Secure';el.className='ok';sc.textContent='🔒';sc.className='ok';}
+  else{el.innerHTML='&#9888; Not secure';el.className='warn';sc.textContent='⚠';sc.className='warn';}
+}
+function setStatus(type, txt){
+  const d=document.getElementById('sled');
+  d.className='sled'+(type==='loading'?' loading':type==='error'?' error':'');
+  document.getElementById('st').textContent=txt;
+}
+function updateNavBtns(canBack,canFwd){
+  document.getElementById('btn-back').disabled=!canBack;
+  document.getElementById('btn-fwd').disabled=!canFwd;
+}
+function navigate(raw){
+  if(!raw||!raw.trim()) return;
+  hideNT(); api.load(raw.trim()); omnibox.blur();
+}
+
+// ── Tab rendering ─────────────────────────────────────────────────────────────
+function renderTabs(){
+  tabStrip.querySelectorAll('.tab').forEach(e=>e.remove());
+  tabList.forEach(t=>{
+    const chip=document.createElement('div');
+    chip.className='tab'+(t.id===activeId?' active':'');
+    chip.title=t.title||'New Tab';
+    chip.onclick=()=>api.activateTab(t.id);
+    chip.oncontextmenu=e=>showTabCtx(e,t.id);
+    const fav=document.createElement('div'); fav.className='tab-fav';
+    if(t.loading){const sp=document.createElement('div');sp.className='tab-spin';fav.appendChild(sp);}
+    else if(t.favicon){const img=document.createElement('img');img.src=t.favicon;img.onerror=()=>img.remove();fav.appendChild(img);}
+    chip.appendChild(fav);
+    const ttl=document.createElement('span');ttl.className='tab-title';
+    ttl.textContent=t.title||(t.url?hn(t.url):'New Tab');
+    chip.appendChild(ttl);
+    const x=document.createElement('button');x.className='tab-x';x.innerHTML='&#10005;';
+    x.onclick=e=>{e.stopPropagation();api.closeTab(t.id);};
+    chip.appendChild(x);
+    tabStrip.insertBefore(chip,document.getElementById('add-tab'));
+  });
+}
+
+// ── Tab context menu ──────────────────────────────────────────────────────────
+function showTabCtx(e,id){
+  e.preventDefault(); ctxTabId=id;
+  ctx.style.left=e.clientX+'px'; ctx.style.top=e.clientY+'px';
+  ctx.classList.add('on');
+}
+document.getElementById('ci-nt').onclick=()=>{ const t=tabList.find(x=>x.id===ctxTabId); if(t?.url)api.newTab(t.url); ctx.classList.remove('on'); };
+document.getElementById('ci-dup').onclick=()=>{ api.duplicateTab(ctxTabId); ctx.classList.remove('on'); };
+document.getElementById('ci-copy').onclick=()=>{ const t=tabList.find(x=>x.id===ctxTabId); if(t?.url)navigator.clipboard.writeText(t.url).catch(()=>{}); ctx.classList.remove('on'); };
+document.getElementById('ci-bm').onclick=()=>{ const prev=activeId; activeId=ctxTabId; toggleStar(); activeId=prev; ctx.classList.remove('on'); };
+document.getElementById('ci-reload').onclick=()=>{ api.activateTab(ctxTabId); api.reload(); ctx.classList.remove('on'); };
+document.getElementById('ci-close').onclick=()=>{ api.closeTab(ctxTabId); ctx.classList.remove('on'); };
+document.addEventListener('click',e=>{ if(!e.target.closest('#ctx'))ctx.classList.remove('on'); });
+
+// ── Bookmarks ─────────────────────────────────────────────────────────────────
+function saveBm(){try{localStorage.setItem('orion_bm',JSON.stringify(bmList));}catch{}}
+function checkStar(url){
+  const has=bmList.some(b=>b.url===url);
+  document.getElementById('star-btn').innerHTML=has?'&#9733;':'&#9734;';
+  document.getElementById('star-btn').classList.toggle('on',has);
+}
+function toggleStar(){
+  const t=tabList.find(x=>x.id===activeId); if(!t?.url) return;
+  const idx=bmList.findIndex(b=>b.url===t.url);
+  if(idx>=0)bmList.splice(idx,1); else bmList.push({url:t.url,title:t.title||hn(t.url)});
+  saveBm(); checkStar(t.url); renderBm();
+}
+function renderBm(){
+  bmBar.querySelectorAll('.bm').forEach(e=>e.remove());
+  const empty=document.getElementById('bm-empty');
+  if(!showBmBar){bmBar.classList.add('off');return;}
+  bmBar.classList.remove('off');
+  if(!bmList.length){empty.style.display='';return;}
+  empty.style.display='none';
+  bmList.forEach((bm,i)=>{
+    const item=document.createElement('div');item.className='bm';item.title=bm.url;
+    const img=document.createElement('img');img.src='https://www.google.com/s2/favicons?domain='+hn(bm.url)+'&sz=32';img.onerror=()=>img.remove();item.appendChild(img);
+    const lbl=document.createElement('span');lbl.textContent=bm.title||hn(bm.url);lbl.style.cssText='max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';item.appendChild(lbl);
+    item.onclick=()=>navigate(bm.url);
+    item.oncontextmenu=e=>{e.preventDefault();bmList.splice(i,1);saveBm();renderBm();};
+    bmBar.appendChild(item);
+  });
+  reportH();
+}
+
+// ── Zoom ──────────────────────────────────────────────────────────────────────
+function setZoomUI(z){
+  currentZoom=z;
+  document.getElementById('zoom-val').textContent=Math.round(z*100)+'%';
+  document.getElementById('zoom-pill').classList.toggle('vis',Math.abs(z-1.0)>0.01);
+}
+
+// ── Find bar ──────────────────────────────────────────────────────────────────
+function openFind(){
+  findOpen=true; findBar.classList.add('on'); findIn.focus(); findIn.select(); reportH();
+}
+function closeFind(){
+  findOpen=false; findBar.classList.remove('on'); api.findStop(); document.getElementById('find-count').textContent=''; reportH();
+}
+findIn.addEventListener('keydown',e=>{
+  if(e.key==='Enter'){ e.shiftKey?api.findPrev(findIn.value):api.findNext(findIn.value); }
+  if(e.key==='Escape') closeFind();
+});
+findIn.addEventListener('input',()=>{ findQuery=findIn.value; if(findQuery)api.findStart(findQuery); else document.getElementById('find-count').textContent=''; });
+document.getElementById('find-next-btn').onclick=()=>api.findNext(findIn.value);
+document.getElementById('find-prev').onclick=()=>api.findPrev(findIn.value);
+document.getElementById('find-close').onclick=closeFind;
+
+// ── Downloads ─────────────────────────────────────────────────────────────────
+function renderDl(){
+  const bar=document.getElementById('dl-bar');
+  bar.innerHTML='';
+  for(const dl of downloads.values()){
+    const item=document.createElement('div');item.className='dl-item';item.title=dl.filename;
+    const name=document.createElement('span');name.className='dl-name';name.textContent=dl.filename;item.appendChild(name);
+    if(dl.state==='progressing'&&dl.total>0){
+      const pct=Math.round((dl.received/dl.total)*100);
+      const prog=document.createElement('span');prog.className='dl-prog';prog.textContent=pct+'%';item.appendChild(prog);
+      const pb=document.createElement('div');pb.className='dl-bar-prog';
+      const fill=document.createElement('div');fill.className='dl-bar-fill';fill.style.width=pct+'%';pb.appendChild(fill);item.appendChild(pb);
+    } else if(dl.state==='completed'){
+      const done=document.createElement('span');done.className='dl-done';done.textContent='✓';item.appendChild(done);
+      item.onclick=()=>api.dlOpen(dl.savePath);
+    } else if(dl.state==='cancelled'||dl.state==='interrupted'){
+      const fail=document.createElement('span');fail.className='dl-fail';fail.textContent='✗';item.appendChild(fail);
+    }
+    bar.appendChild(item);
+  }
+}
+
+// ── Main process events ───────────────────────────────────────────────────────
+api.on('tabs-list', list=>{ tabList=list; renderTabs(); });
+api.on('tab-activated', ({id,url})=>{
+  activeId=id; renderTabs();
+  if(!url||url==='about:blank'||url==='') showNT();
+  else{ hideNT(); omnibox.value=url; setSsl(url); checkStar(url); }
+});
+api.on('tab-update', t=>{ const i=tabList.findIndex(x=>x.id===t.id); if(i>=0)tabList[i]=t; renderTabs(); if(t.id===activeId){ if(t.loading)setStatus('loading','Loading '+hn(t.url)+'…'); else setStatus('',t.title||hn(t.url)); } });
+api.on('nav-update', ({url,canBack,canFwd,zoom})=>{
+  if(!url||url==='about:blank'){showNT();return;}
+  omnibox.value=url; setSsl(url); checkStar(url); updateNavBtns(canBack,canFwd);
+  if(zoom!==undefined) setZoomUI(zoom);
+});
+api.on('show-newtab', ()=>showNT());
+api.on('loading', loading=>{ if(loading) setStatus('loading','Loading…'); else setStatus('',''); });
+api.on('zoom', z=>setZoomUI(z));
+api.on('find-result', ({active,total,final})=>{ document.getElementById('find-count').textContent=total?`${active}/${total}`:'No results'; });
+api.on('dl-start',  dl=>{ downloads.set(dl.id,dl); renderDl(); });
+api.on('dl-progress', ({id,received,total,state})=>{ const dl=downloads.get(id); if(dl){dl.received=received;dl.total=total;dl.state=state;renderDl();} });
+api.on('dl-done', ({id,state,savePath})=>{ const dl=downloads.get(id); if(dl){dl.state=state;dl.savePath=savePath;renderDl(); setTimeout(()=>{downloads.delete(id);renderDl();},8000);} });
+// Page context menu (from BrowserView right-click)
+api.on('page-ctx', p=>{ if(p.link){ctx.style.left=p.x+'px';ctx.style.top=p.y+'px';ctxTabId=activeId;document.getElementById('ci-nt').textContent='Open link in new tab';ctx.classList.add('on');document.getElementById('ci-nt').onclick=()=>{api.newTab(p.link);ctx.classList.remove('on');};} });
+
+// ── AI Model ──────────────────────────────────────────────────────────────────
+function applyModel(val){
+  currentModel=val; try{localStorage.setItem('orion_model',val);}catch{} hfWarn=false;
+  const isPoll=val==='pollinations';
+  document.getElementById('ai-st-txt').textContent=isPoll?'GPT-4o · Pollinations · Free':'HuggingFace · '+val.split('/').pop();
+  document.getElementById('model-badge').textContent=isPoll?'Free':'HF';
+  document.getElementById('model-badge').className=isPoll?'badge g':'badge';
+  document.getElementById('model-sel').value=val;
+}
+document.getElementById('model-sel').onchange=e=>applyModel(e.target.value);
+document.getElementById('hf-key').oninput=e=>{ hfKey=e.target.value; hfWarn=false; try{localStorage.setItem('orion_hf_key',hfKey);}catch{}; };
+setTimeout(()=>{ applyModel(currentModel); if(hfKey) document.getElementById('hf-key').value=hfKey; },50);
+
+// ── AI helpers ────────────────────────────────────────────────────────────────
+function addMsg(role,txt,cls){ const d=document.createElement('div'); d.className='msg '+(cls||role); d.textContent=txt; aiLog.appendChild(d); aiLog.scrollTop=aiLog.scrollHeight; return d; }
+function addDots(){ const d=document.createElement('div');d.className='msg a';d.innerHTML='<span class="dots"><span>•</span><span>•</span><span>•</span></span>';aiLog.appendChild(d);aiLog.scrollTop=aiLog.scrollHeight;return d; }
+function addStep(type,txt,step){
+  const icons={start:'🎯',think:'🤔',act:'⚡',done:'✅',fail:'❌',err:'⚠️'};
+  const cls={start:'step ac',think:'step tk',act:'step ac',done:'step ac',fail:'step fl',err:'step fl'};
+  const d=document.createElement('div'); d.className='msg '+(cls[type]||'step tk');
+  d.textContent=(step?`[${step}] `:'')+(icons[type]||'')+' '+txt;
+  aiLog.appendChild(d); aiLog.scrollTop=aiLog.scrollHeight; return d;
+}
+function addThinkStep(step){ const d=document.createElement('div');d.className='msg step tk';d.innerHTML=`[${step}] <span class="dots"><span>•</span><span>•</span><span>•</span></span>`;aiLog.appendChild(d);aiLog.scrollTop=aiLog.scrollHeight;return d; }
+function updInfo(){ document.getElementById('ai-info').textContent=aiConv.length+' msgs'; }
+
+async function callAI(sys, msgs){
+  const m=[{role:'system',content:sys}].concat((msgs||[]).slice(-14));
+  const useHF=currentModel!=='pollinations'&&hfKey&&hfKey.trim();
+  if(!useHF){
+    if(currentModel!=='pollinations'&&!hfWarn){ hfWarn=true; addMsg('a','⚠️ HuggingFace models need an API key. Using Pollinations (GPT-4o free) instead. Paste your HF key above.','err'); }
+    const r=await fetch('https://text.pollinations.ai/openai',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({model:'openai',messages:m,max_tokens:1200,temperature:0.3,stream:false})});
+    if(!r.ok) throw new Error('Pollinations error '+r.status);
+    const d=await r.json(); return d.choices?.[0]?.message?.content?.trim()||'';
+  }
+  const r2=await fetch('https://router.huggingface.co/hf-inference/v1/chat/completions',{method:'POST',headers:{'content-type':'application/json',authorization:'Bearer '+hfKey.trim()},body:JSON.stringify({model:currentModel,messages:m,max_tokens:1200,temperature:0.3,stream:false})});
+  if(!r2.ok){ const er=await r2.json().catch(()=>({})); if(r2.status===401)throw new Error('HuggingFace 401 — check your API key above.'); throw new Error(er.error?.message||'HF error '+r2.status); }
+  const d2=await r2.json(); return d2.choices?.[0]?.message?.content?.trim()||'';
+}
+
+async function getSnap(){
+  const raw=await api.pageSnapshot();
+  if(!raw) return 'No page loaded.';
+  try{
+    const s=JSON.parse(raw);
+    let o=`URL: ${s.url}\nTitle: ${s.title}\nScroll: ${Math.round(s.scroll?.y||0)}/${Math.round(s.scroll?.maxY||0)}px\n\n`;
+    if(s.sections?.length){o+='=== CONTENT ===\n';s.sections.forEach(sec=>{if(sec.h)o+=`[${sec.h}]\n`;sec.p?.forEach(p=>{o+=p+'\n';});o+='\n';});}
+    if(s.elements?.length){
+      o+='=== INTERACTIVE ===\n';
+      const inp=s.elements.filter(e=>['input','textarea','select'].includes(e.tag));
+      const btn=s.elements.filter(e=>e.tag==='button'||e.type==='submit');
+      const lnk=s.elements.filter(e=>e.tag==='a');
+      if(inp.length){o+='INPUTS:\n';inp.slice(0,10).forEach(e=>{o+=`  [${e.sel}] ${e.tag}${e.type?':'+e.type:''} ${e.placeholder?'"'+e.placeholder+'"':''}\n`;});}
+      if(btn.length){o+='BUTTONS:\n';btn.slice(0,10).forEach(e=>{o+=`  [${e.sel}] "${e.text}"\n`;});}
+      if(lnk.length){o+='LINKS:\n';lnk.slice(0,20).forEach(e=>{o+=`  [${e.sel}] "${e.text}"${e.href?' → '+e.href:''}\n`;});}
+    }
+    return o;
+  }catch{return raw;}
+}
+
+// ── Agent ─────────────────────────────────────────────────────────────────────
+function sleep(ms){return new Promise(r=>setTimeout(r,ms));}
+async function agNav(url){ navigate(url.replace(/^['"]|['"]$/g,'')); await sleep(2200); return 'Navigated to '+url; }
+async function agClick(sel){ const r=await api.pageExec(`(function(){var el=document.querySelector(${JSON.stringify(sel)});if(!el){var a=document.querySelectorAll('a,button,[role="button"]');for(var i=0;i<a.length;i++){if((a[i].innerText||'').trim().toLowerCase().includes(${JSON.stringify(sel.toLowerCase())})){el=a[i];break;}}}if(!el)return 'not found: '+${JSON.stringify(sel)};el.scrollIntoView({block:'center',behavior:'smooth'});el.click();return 'clicked: '+(el.innerText||el.tagName);})()`); await sleep(700); return 'Click: '+r; }
+async function agFill(sel,val){ const r=await api.pageExec(`(function(){var el=document.querySelector(${JSON.stringify(sel)});if(!el)return 'not found';el.focus();el.value=${JSON.stringify(val)};el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}));return 'filled';})()`); await sleep(200); return 'Fill: '+r; }
+async function agScroll(dy){ await api.pageExec(`window.scrollBy({top:${dy},behavior:'smooth'})`); await sleep(500); return 'Scrolled '+Math.abs(dy)+'px '+(dy>0?'down':'up'); }
+async function agEval(code){ const r=await api.pageExec(`(function(){try{return String(eval(${JSON.stringify(code)}))}catch(e){return 'error: '+e.message}})()`); return 'Eval: '+r; }
+
+async function runAgent(goal){
+  if(agentRunning){addMsg('a','Agent already running.','err');return;}
+  agentRunning=true; setAgUI(true);
+  addStep('start','Goal: '+goal,null);
+  const MAX=14; let step=0, last='';
+  while(agentRunning&&step<MAX){
+    step++;
+    const snap=await getSnap();
+    const sys='You are an AI browser agent. You control a real Chromium browser.\n\nCURRENT PAGE:\n'+snap+'\n\nLAST RESULT: '+(last||'(first step)')+'\n\nTOOLS — output EXACTLY one per message:\nNAVIGATE(url)\nCLICK(css-selector)\nFILL(selector, value)\nSCROLL(pixels)\nEVAL(js)\nSNAPSHOT()\nNEWTAB(url)\nDONE(message)\nFAIL(reason)\n\nRULES: One tool call only. No extra text. Selectors from snapshot.\nGOAL: '+goal+'\nSTEP '+step+'/'+MAX;
+    const th=addThinkStep(step);
+    let resp; try{resp=await callAI(sys,[]);}catch(e){th.remove();addMsg('a','AI error: '+e.message,'err');break;}
+    th.remove();
+    const tr=(resp||'').trim(); addStep('think',tr,step);
+    let m=tr.match(/^(NAVIGATE|CLICK|FILL|SCROLL|EVAL|SNAPSHOT|NEWTAB|DONE|FAIL)\(([^]*?)\)\s*$/m);
+    if(!m)m=tr.match(/(NAVIGATE|CLICK|FILL|SCROLL|EVAL|SNAPSHOT|NEWTAB|DONE|FAIL)\(([^]*?)\)/m);
+    if(!m){last='parse failed: '+tr.slice(0,60);continue;}
+    const tool=m[1].toUpperCase(),args=m[2].trim();
+    if(tool==='DONE'){addStep('done',args,step);break;}
+    if(tool==='FAIL'){addStep('fail',args,step);break;}
+    let res; try{
+      if(tool==='NAVIGATE')res=await agNav(args);
+      else if(tool==='CLICK')res=await agClick(args);
+      else if(tool==='FILL'){const ci=args.indexOf(',');res=await agFill(args.slice(0,ci).trim(),args.slice(ci+1).trim().replace(/^['"]|['"]$/g,''));}
+      else if(tool==='SCROLL')res=await agScroll(parseInt(args)||300);
+      else if(tool==='EVAL')res=await agEval(args);
+      else if(tool==='SNAPSHOT')res=await getSnap();
+      else if(tool==='NEWTAB'){api.newTab(args.replace(/^['"]|['"]$/g,''));res='Opened new tab';}
+      else res='unknown';
+    }catch(e){res='error: '+e.message;}
+    addStep('act',tool+'('+args.slice(0,50)+') → '+res,step); last=res;
+    await sleep(200);
+  }
+  if(step>=MAX&&agentRunning)addMsg('a','Agent reached max steps.','err');
+  agentRunning=false; setAgUI(false);
+}
+function setAgUI(r){
+  document.getElementById('agent-tag').style.display=r?'inline':'none';
+  aiGoBtn.disabled=r; aiGoBtn.textContent=r?'◼':'▶';
+  if(r){ aiGoBtn.disabled=false; aiGoBtn.onclick=()=>{agentRunning=false;addMsg('a','Agent stopped.','step ac');}; }
+  else{ aiGoBtn.onclick=doSend; updInfo(); }
+}
+
+async function doSend(){
+  const txt=aiIn.value.trim(); if(!txt||agentRunning)return;
+  if(!aiOpen)toggleAI();
+  addMsg('u',txt); aiIn.value=''; aiIn.style.height='auto';
+  aiConv.push({role:'user',content:txt}); updInfo();
+  const wc=txt.split(/\s+/).length, isG=/^(hi|hey|hello|yo)[!.,]?$/i.test(txt.trim());
+  const isTask=!isG&&wc>=3&&/^(go to|navigate|open|click|search for|search|find|scroll|fill|type|submit|login|visit|get me|browse|look up)/i.test(txt)&&!txt.includes('?');
+  const isExplicit=/\b(use agent|automate|on the page|on this page)\b/i.test(txt);
+  if(isTask||isExplicit){runAgent(txt);return;}
+  aiGoBtn.disabled=true;
+  const th=addDots(); const snap=await getSnap();
+  const sys='You are Orion AI, a helpful browser assistant.\n\nCurrent page:\n'+snap+'\n\nBe concise. Use plain text. For math, show steps.';
+  try{
+    const reply=await callAI(sys,aiConv.slice(-14));
+    aiConv.push({role:'assistant',content:reply}); th.remove(); addMsg('a',reply); aiGoBtn.disabled=false; updInfo();
+  }catch(e){ th.remove(); addMsg('a','Error: '+e.message,'err'); aiGoBtn.disabled=false; }
+}
+
+function toggleAI(){ aiOpen=!aiOpen; document.getElementById('ai-panel').classList.toggle('on',aiOpen); document.getElementById('ai-btn').classList.toggle('on',aiOpen); reportH(); }
+
+// ── Button wiring ─────────────────────────────────────────────────────────────
+document.getElementById('btn-back').onclick   = ()=>api.back();
+document.getElementById('btn-fwd').onclick    = ()=>api.fwd();
+document.getElementById('btn-reload').onclick = ()=>api.reload();
+document.getElementById('btn-home').onclick   = ()=>{ api.home(); showNT(); };
+document.getElementById('star-btn').onclick   = toggleStar;
+document.getElementById('ai-btn').onclick     = toggleAI;
+document.getElementById('ai-x').onclick       = toggleAI;
+document.getElementById('ai-clr').onclick     = ()=>{ aiConv=[]; aiLog.innerHTML=''; addMsg('a','Cleared.'); updInfo(); };
+aiGoBtn.onclick = doSend;
+document.getElementById('add-tab').onclick    = ()=>api.newTab('');
+document.getElementById('dev-btn').onclick    = ()=>api.openDevTools();
+document.getElementById('build-btn').onclick  = ()=>api.openBuilder();
+document.getElementById('find-toggle').onclick= ()=>{ findOpen?closeFind():openFind(); };
+document.getElementById('zm-in').onclick      = ()=>api.zoomIn();
+document.getElementById('zm-out').onclick     = ()=>api.zoomOut();
+document.getElementById('zoom-val').onclick   = ()=>api.zoomReset();
+
+omnibox.addEventListener('keydown',e=>{ if(e.key==='Enter') navigate(omnibox.value); });
+omnibox.addEventListener('focus',()=>omnibox.select());
+document.getElementById('omni-go').onclick=()=>navigate(omnibox.value);
+document.getElementById('nt-in').addEventListener('keydown',e=>{ if(e.key==='Enter') navigate(e.target.value.trim()); });
+document.querySelectorAll('.ql').forEach(el=>el.onclick=()=>navigate(el.dataset.url));
+document.querySelectorAll('.chip').forEach(b=>b.onclick=()=>{ aiIn.value=b.dataset.q; if(!aiOpen)toggleAI(); aiIn.focus(); });
+aiIn.addEventListener('keydown',e=>{ if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();doSend();} });
+aiIn.addEventListener('input',()=>{ aiIn.style.height='auto'; aiIn.style.height=Math.min(aiIn.scrollHeight,84)+'px'; });
+
+// ── Keyboard shortcuts ────────────────────────────────────────────────────────
+document.addEventListener('keydown',e=>{
+  const tgt=e.target; if(tgt===omnibox||tgt===aiIn||tgt===document.getElementById('nt-in')||tgt===findIn)return;
+  const mod=e.ctrlKey||e.metaKey;
+  if(mod){
+    if(e.key==='t'){e.preventDefault();api.newTab('');}
+    else if(e.key==='w'){e.preventDefault();api.closeTab(activeId);}
+    else if(e.key==='l'){e.preventDefault();omnibox.focus();omnibox.select();}
+    else if(e.key==='r'){e.preventDefault();api.reload();}
+    else if(e.key==='R'){e.preventDefault();api.hardReload();}
+    else if(e.key==='f'||e.key==='F'){e.preventDefault();openFind();}
+    else if(e.key==='k'){e.preventDefault();toggleAI();}
+    else if(e.key==='d'){e.preventDefault();toggleStar();}
+    else if(e.key==='b'){e.preventDefault();showBmBar=!showBmBar;localStorage.setItem('orion_bm_bar',showBmBar);renderBm();}
+    else if(e.key==='='||e.key==='+'){e.preventDefault();api.zoomIn();}
+    else if(e.key==='-'){e.preventDefault();api.zoomOut();}
+    else if(e.key==='0'){e.preventDefault();api.zoomReset();}
+    else if(!isNaN(e.key)&&+e.key>=1&&+e.key<=9){e.preventDefault();const t=tabList[+e.key-1];if(t)api.activateTab(t.id);}
+  }
+  if(e.key==='F5'){e.preventDefault();api.reload();}
+  if(e.key==='Escape'){ctx.classList.remove('on');if(findOpen)closeFind();}
+  if(e.altKey&&e.key==='ArrowLeft'){e.preventDefault();api.back();}
+  if(e.altKey&&e.key==='ArrowRight'){e.preventDefault();api.fwd();}
+});
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+renderBm(); updateNavBtns(false,false); setTimeout(reportH,100);
+</script>
+</body>
+</html>
